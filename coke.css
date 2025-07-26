@@ -1,0 +1,216 @@
+.logo{
+    padding-left: 140px;
+}
+
+nav{
+    height: 80px;
+}
+
+html,body{
+    background-color: #eeeeee;
+}
+.carouselImages{
+    height: 600px;
+    width: 1200px;
+    border-radius: 15px
+}
+
+
+.carouselMain{
+    margin-top: 55px;
+}
+
+.experience{
+    margin-top: 50px;
+}
+
+.cardText1{
+   padding-top: 30px;
+   width: 250px;
+   
+}
+
+.card{
+    border: none;
+    background-color: #eeeeee;
+}
+
+.explore{
+    border-radius: 20px;
+    width: 300px;
+    border: solid;
+    background-color: #eeeeee;
+    border-color: black;
+    color: black;
+    border:2px solid black;
+    
+}
+
+.drink{
+    border-radius: 15px;
+}
+
+.textFirst{
+    padding-top: 100px;
+    padding-right: 50px;
+    width: 600px;
+}
+
+.mainContainer{
+    width: 1500px;
+}
+
+.c1{
+  width: 583px;
+}
+
+.c2{
+    border-radius:20px;
+    border: none;
+    height: 300px;
+    padding-top: 60px;
+    padding-left: 40px;
+}
+
+.sus{
+    border-radius: 15px 15px 0 0;
+}
+
+.agriCard{
+    border-radius: 0 0 15px 15px
+}
+
+
+.logoContainer{
+    width: 700px;
+}
+
+.log{
+    background-color: white;
+    height:220px;
+    width: 220px;
+    margin-right: 13px;
+    border-radius: 15px;
+}
+
+.btn2{
+    border-radius: 20px;
+    height: 42px;
+    width: 340px;
+    border: solid;
+    background-color: black;
+    border-color: black;
+    color: white;
+    border:2px solid black;
+    font-weight: bold;
+    font-size: large;
+}
+
+.foot1{
+    padding-left: 200px;
+    padding-top: 100px;
+}
+
+#d1
+{
+    display: flex;
+    margin-top: 130px;
+}
+#d3
+{
+    background-color:white;
+    height: 600px;
+    width: 600px;
+    border-radius: 20px;
+    padding-bottom: 400px;
+}
+#btn1
+{
+    background-color: white;
+    margin-left: 60px;
+    margin-top: 40px;
+    height: 40px;
+    width: 300px;
+    border-radius: 40px;
+    font-weight: 600;
+}
+#ch
+{
+    padding-top: 100px;
+    padding-left: 60px;
+}
+#p2
+{
+    font-size:22px;
+    padding-left: 60px;
+    font-weight: 450;
+}
+
+#d2{
+    padding-left: 200px;
+    margin-top: 100px;
+}
+
+.limca{
+    border-radius: 20px;
+    height: 570px;
+}
+
+.footText{
+    color: #9f9898;
+}
+
+#btn4
+{
+    background-color: black;
+    color: white;
+    height: 40px;
+    width: 200px;
+    border-radius: 40px;
+    border-color: white;
+    font-weight: 600;
+}
+
+i{
+    color: white;
+    margin-right: 20px;
+    font-size: 20px;
+}   
+
+
+
+.icons{
+    margin-left: 240px;
+}
+
+.white{
+    border: none;
+    background-color: white;
+    height: 4px;
+}
+
+.lim{
+    height: 500px;
+    width: 500px;
+}
+
+.record{
+    width: 600px;
+    height: 500px;
+    padding-top: 80px;
+    padding-left: 50px;
+    background-color: white;
+    border-radius: 20px;
+    z-index: 1000;
+    
+}
+
+.lim{
+    position: relative;
+    top: 140px;
+    left: 80px
+}
+
+.bt{
+    margin-top: 200px;
+}

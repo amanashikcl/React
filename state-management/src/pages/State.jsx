@@ -36,7 +36,7 @@ const State = () => {
     }
 
     const IncrementTwo = () => {
-        setCounters({ ...counters, two: counters.two + 1 });
+        setCounters({ ...counters, two: counters.two * 2 });
     }
 
     return <div>

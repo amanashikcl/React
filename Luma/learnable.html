@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LearnAble</title>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Supabase Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .dyslexia-font {
+            font-family: 'Arial', sans-serif;
+            letter-spacing: 0.05em;
+            word-spacing: 0.2em;
+        }
+        .high-contrast {
+            background-color: #000;
+            color: #FFFF00;
+        }
+        .high-contrast .bg-white { background-color: #000 !important; }
+        .high-contrast .text-gray-800, .high-contrast .text-gray-900 { color: #FFFF00 !important; }
+        .high-contrast .text-gray-600, .high-contrast .text-gray-500 { color: #FFF !important; }
+        .high-contrast .bg-gray-100 { background-color: #222 !important; border-color: #FFFF00; }
+        .high-contrast .border-gray-300, .high-contrast .border-gray-200 { border-color: #FFFF00 !important; }
+        .high-contrast button, .high-contrast .button { background-color: #FFFF00 !important; color: #000 !important; }
+        .high-contrast nav a { color: #FFFF00 !important; }
+        .high-contrast .prose { color: #FFFF00; }
+        .high-contrast .prose h2, .high-contrast .prose h3 { color: #FFFF00; }
+        .high-contrast .game-card { background-color: #333; border-color: #FFFF00; }
+        .high-contrast .bingo-cell.marked { background-color: #4CAF50 !important; }
+
+
+        .loader {
+            border: 8px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 8px solid #3498db;
+            width: 60px;
+            height: 60px;
+            animation: spin 2s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .hidden { display: none; }
+        .distraction-free header, .distraction-free footer { display: none; }
+        #main-content { font-size: 1rem; }
+
+        /* Game Styles */
+        .game-card { transition: transform 0.2s, box-shadow 0.2s; }
+        .game-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); }
+        .phonics-option.correct { animation: bounce 0.5s ease; border-color: #4CAF50; }
+        @keyframes bounce { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        .bingo-cell { transition: background-color 0.3s; }
+        .bingo-cell.marked { background-color: #A7F3D0; }
+        .word-family-letter { cursor: grab; }
+        .word-family-letter:active { cursor: grabbing; }
+        .word-family-dropzone { border-style: dashed; }
+        #game-feedback {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 2rem 4rem;
+            border-radius: 1rem;
+            font-size: 5rem;
+            z-index: 100;
+            animation: fadeOut 1.5s forwards;
+        }
+        @keyframes fadeOut { 0% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); } }
+        
+        .auth-form input {
+            width: 100%;
+            padding-left: 1rem;
+            padding-right: 1rem;
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+            border: 1px solid #d1d5db; /* Tailwind's border-gray-300 */
+            border-radius: 0.5rem; /* Tailwind's rounded-lg */
+        }
+
+        #guided-reading-output span.highlight {
+            background-color: #fef08a; /* A softer yellow */
+            color: black;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 transition-colors duration-300">
+
+    <!-- Header -->
+    <header class="bg-white shadow-md p-4 flex justify-between items-center">
+        <div class="flex items-center space-x-3">
+            <img src="log.png" alt="LearnAble Logo" class="h-16 w-16 md:h-20 md:w-20 object-contain" style="max-width:80px;max-height:80px;" />
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold text-blue-600">LearnAble</h1>
+                <div class="text-base md:text-lg text-gray-600 font-medium mt-1">Support for the disabled</div>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2 md:space-x-4">
+            <button id="settings-btn" aria-label="Open settings" class="p-2 rounded-full hover:bg-gray-200">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center">
+        <div class="bg-white rounded-lg p-8 shadow-xl w-11/12 md:w-1/3">
+            <h2 class="text-2xl font-bold mb-6">Display Settings</h2>
+            <div class="space-y-6">
+                <div>
+                    <label for="font-size-slider" class="block text-lg font-medium text-gray-700">Font Size</label>
+                    <input id="font-size-slider" type="range" min="16" max="32" value="16" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                </div>
+                <div>
+                    <label class="block text-lg font-medium text-gray-700">Color Theme</label>
+                    <div class="flex space-x-4 mt-2">
+                        <button id="theme-default" class="flex-1 p-3 rounded-lg border-2 border-blue-500">Default</button>
+                        <button id="theme-contrast" class="flex-1 p-3 rounded-lg border-2 bg-black text-yellow-400">High Contrast</button>
+                    </div>
+                </div>
+                 <div>
+                    <label class="block text-lg font-medium text-gray-700">Font Style</label>
+                    <div class="flex space-x-4 mt-2">
+                        <button id="font-default" class="flex-1 p-3 rounded-lg border-2 border-blue-500">Default</button>
+                        <button id="font-dyslexia" class="flex-1 p-3 rounded-lg border-2 dyslexia-font">Dyslexia Friendly</button>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-lg font-medium text-gray-700">Focus Mode</label>
+                     <div class="flex items-center mt-2">
+                        <input id="distraction-toggle" type="checkbox" class="h-6 w-6 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                        <label for="distraction-toggle" class="ml-3 block text-lg text-gray-900">Enable Distraction-Free Mode</label>
+                    </div>
+                </div>
+            </div>
+            <button id="close-settings" class="mt-8 w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700">Close</button>
+        </div>
+    </div>
+    
+    <div id="game-feedback" class="hidden"></div>
+
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-gray-200" style="min-height:0;">
+        <div class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6">
+            <div class="flex justify-center h-8 md:h-10 items-center" style="min-height:0;">
+                <div class="flex space-x-4 md:space-x-6">
+                    <a href="#" id="nav-learner" class="nav-link border-b-4 border-blue-500 inline-flex items-center px-1 pt-1 text-lg font-medium text-gray-900">For Learners</a>
+                    <a href="#" id="nav-games" class="nav-link border-b-4 border-transparent inline-flex items-center px-1 pt-1 text-lg font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">Play & Learn</a>
+                    <a href="#" id="nav-progress" class="nav-link border-b-4 border-transparent inline-flex items-center px-1 pt-1 text-lg font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 hidden">Progress</a>
+                    <a href="#" id="nav-parents" class="nav-link border-b-4 border-transparent inline-flex items-center px-1 pt-1 text-lg font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">For Parents</a>
+                    <a href="#" id="nav-login" class="nav-link border-b-4 border-transparent inline-flex items-center px-1 pt-1 text-lg font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">Login</a>
+                    <a href="#" id="nav-logout" class="nav-link border-b-4 border-transparent inline-flex items-center px-1 pt-1 text-lg font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700 hidden">Logout</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main id="main-content" class="max-w-4xl mx-auto p-4 md:p-8">
+        <!-- Learner's Section -->
+        <section id="learner-section" class="active">
+            <!-- Image Summarizer -->
+            <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+                <h2 class="text-2xl font-bold mb-4 text-center">Image to Speech Summarizer</h2>
+                <p class="text-gray-600 text-center mb-6">Upload a photo of a page, and I'll summarize it and read it to you.</p>
+                <div class="flex flex-col items-center">
+                    <input type="file" id="image-upload" accept="image/*" class="hidden">
+                    <label for="image-upload" class="button w-full md:w-1/2 bg-blue-600 text-white font-bold py-4 px-6 rounded-xl text-center cursor-pointer hover:bg-blue-700 transition-transform transform hover:scale-105 text-lg">
+                        Select an Image
+                    </label>
+                    <img id="image-preview" src="" alt="Image preview" class="mt-6 rounded-lg max-w-full h-auto hidden"/>
+                </div>
+            </div>
+
+            <!-- Create Flashcard Tool -->
+            <div class="bg-white p-6 rounded-xl shadow-lg mb-8">
+                <h2 class="text-2xl font-bold mb-4 text-center">Create Flashcard</h2>
+                <form id="flashcard-form" class="flex flex-col md:flex-row md:items-center gap-4">
+                    <input id="flashcard-front" type="text" required placeholder="Front (Question/Word)" class="flex-1 p-3 border border-gray-300 rounded-lg" />
+                    <input id="flashcard-back" type="text" required placeholder="Back (Answer/Definition)" class="flex-1 p-3 border border-gray-300 rounded-lg" />
+                    <button type="submit" class="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700">Save</button>
+                </form>
+                <div id="flashcard-message" class="mt-2 text-center text-green-600 font-semibold"></div>
+                <div id="flashcard-list-section" class="mt-6">
+                    <h3 class="text-2xl font-bold mb-4 text-center text-blue-700">Your Flashcards</h3>
+                    <div id="flashcard-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                    <!-- Flashcard Modal -->
+                    <div id="flashcard-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+                        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full relative flex flex-col items-center">
+                            <button id="close-flashcard-modal" class="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl font-bold">&times;</button>
+                            <div id="modal-flashcard-front" class="text-2xl font-bold text-blue-800 mb-6 text-center"></div>
+                            <button id="show-flashcard-answer" class="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 mb-4">Show Answer</button>
+                            <div id="modal-flashcard-back" class="text-lg text-gray-800 text-center hidden"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Text-to-Speech Reader -->
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                 <h2 class="text-2xl font-bold mb-4 text-center">Text Summarizer & Reader</h2>
+                 <p class="text-gray-600 text-center mb-6">Paste text below. I'll create a simple summary and read it aloud automatically.</p>
+                 <textarea id="text-input" rows="8" class="w-full p-4 border border-gray-300 rounded-lg text-lg focus:ring-2 focus:ring-blue-500" placeholder="Paste your text here..."></textarea>
+                 <button id="read-text-btn" class="button mt-4 w-full bg-green-600 text-white font-bold py-4 px-6 rounded-xl hover:bg-green-700 transition-transform transform hover:scale-105 text-lg">
+                    Summarize & Read Again
+                </button>
+            </div>
+            
+            <!-- Result and Audio Player -->
+            <div id="result-section" class="mt-8 bg-gray-100 p-6 rounded-xl border border-gray-300 hidden">
+                <div id="loader" class="hidden mx-auto loader"></div>
+                <div id="error-message" class="hidden text-red-600 font-bold text-center"></div>
+                <div id="summary-output">
+                    <h3 class="text-xl font-bold mb-4">Summary:</h3>
+                    <div id="summary-text" class="prose max-w-none text-lg"></div>
+                    <div id="guided-reading-output" class="prose max-w-none text-lg hidden"></div>
+                    <div id="audio-player-container" class="mt-6"></div>
+                    <button id="start-guided-reading-btn" class="button mt-4 bg-purple-600 hover:bg-purple-700 hidden">Start Guided Reading</button>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Games Section -->
+        <section id="games-section" class="hidden">
+            <h2 class="text-3xl font-bold mb-8 text-center">Play & Learn Games</h2>
+            
+            <!-- Game Menu -->
+            <div id="game-menu" class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <button data-game="phonics" class="game-choice-btn game-card bg-white p-6 rounded-xl shadow-lg text-center">
+                    <span class="text-5xl">🎈</span>
+                    <h3 class="text-2xl font-bold mt-4">Phonics Sound Match</h3>
+                    <p class="text-gray-600 mt-2">Match letters to sounds.</p>
+                </button>
+                 <button data-game="word-family" class="game-choice-btn game-card bg-white p-6 rounded-xl shadow-lg text-center">
+                    <span class="text-5xl">🏡</span>
+                    <h3 class="text-2xl font-bold mt-4">Word Family Builder</h3>
+                    <p class="text-gray-600 mt-2">Drag letters to make words.</p>
+                </button>
+                 <button data-game="bingo" class="game-choice-btn game-card bg-white p-6 rounded-xl shadow-lg text-center">
+                    <span class="text-5xl">🌟</span>
+                    <h3 class="text-2xl font-bold mt-4">Sight Word Bingo</h3>
+                    <p class="text-gray-600 mt-2">Find the word you hear.</p>
+                </button>
+            </div>
+
+            <!-- Game Containers -->
+            <div id="game-container-phonics" class="game-container hidden">
+                <button class="back-to-menu-btn mb-4 text-blue-600 font-semibold">&larr; Back to Games</button>
+                <div id="phonics-game" class="bg-white p-6 rounded-xl shadow-lg text-center">
+                    <h3 class="text-2xl font-bold mb-2">Phonics Sound Match</h3>
+                    <div id="phonics-board" class="space-y-4">
+                        <div id="phonics-instruction" class="text-xl font-semibold p-4 bg-blue-100 rounded-lg"></div>
+                        <div id="phonics-options" class="grid grid-cols-2 gap-4"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="game-container-word-family" class="game-container hidden">
+                <button class="back-to-menu-btn mb-4 text-blue-600 font-semibold">&larr; Back to Games</button>
+                <div id="word-family-game" class="bg-white p-6 rounded-xl shadow-lg text-center">
+                    <h3 class="text-2xl font-bold mb-2">Word Family Builder</h3>
+                    <div id="word-family-board" class="flex flex-col items-center justify-center space-y-4 min-h-[200px]">
+                        <div class="flex items-center justify-center text-4xl font-bold">
+                            <div id="word-family-dropzone" class="w-16 h-16 border-4 border-gray-400 rounded-lg mr-2 flex items-center justify-center"></div>
+                            <span id="word-family-rime"></span>
+                        </div>
+                        <div id="word-family-letters" class="flex space-x-4"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="game-container-bingo" class="game-container hidden">
+                <button class="back-to-menu-btn mb-4 text-blue-600 font-semibold">&larr; Back to Games</button>
+                <div id="sight-word-game" class="bg-white p-6 rounded-xl shadow-lg text-center">
+                     <h3 class="text-2xl font-bold mb-2">Sight Word Bingo</h3>
+                     <div id="bingo-board-container" class="space-y-4">
+                        <div id="bingo-call" class="text-xl font-bold p-4 bg-blue-100 rounded-lg"></div>
+                        <div id="bingo-timer" class="text-2xl font-bold text-red-500"></div>
+                        <div id="bingo-grid" class="grid grid-cols-3 gap-2 mx-auto w-max"></div>
+                        <button id="new-bingo-game" class="button bg-blue-600 text-white font-bold py-2 px-4 rounded-lg mt-4">New Game</button>
+                     </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Authentication Section -->
+        <section id="auth-section" class="hidden">
+            <div class="max-w-md mx-auto bg-white p-8 rounded-xl shadow-lg">
+                <div id="auth-message" class="mb-4 text-center"></div>
+                <!-- Login Form -->
+                <form id="login-form" class="space-y-6">
+                    <h2 class="text-2xl font-bold text-center">Login</h2>
+                    <div>
+                        <label for="login-email" class="block text-sm font-medium text-gray-700">Email</label>
+                        <input type="email" id="login-email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label for="login-password" class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" id="login-password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    <button type="submit" class="w-full button">Login</button>
+                </form>
+                <hr class="my-8">
+                <!-- Signup Form -->
+                <form id="signup-form" class="space-y-6">
+                    <h2 class="text-2xl font-bold text-center">Sign Up</h2>
+                     <div>
+                        <label for="signup-email" class="block text-sm font-medium text-gray-700">Email</label>
+                        <input type="email" id="signup-email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label for="signup-password" class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" id="signup-password" required class="w-full px-4 py-2 border border-gray-300 rounded-lg">
+                    </div>
+                    <button type="submit" class="w-full button">Sign Up</button>
+                </form>
+            </div>
+        </section>
+        
+        <!-- Progress Section -->
+        <section id="progress-section" class="hidden">
+            <div class="bg-white p-8 rounded-xl shadow-lg mb-8">
+                <h2 class="text-3xl font-bold mb-6 text-center">Your Progress</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-center">
+                    <div class="bg-blue-100 p-6 rounded-lg">
+                        <div id="total-days" class="text-5xl font-bold text-blue-600">0</div>
+                        <div class="text-lg text-gray-700 mt-2">Days Used</div>
+                    </div>
+                    <div class="bg-green-100 p-6 rounded-lg">
+                        <div id="total-correct" class="text-5xl font-bold text-green-600">0</div>
+                        <div class="text-lg text-gray-700 mt-2">Correct Answers</div>
+                    </div>
+                </div>
+                <!-- Dashboard Charts -->
+                <div class="mt-10">
+                    <h3 class="text-2xl font-bold mb-4 text-center">Progress Dashboard</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <canvas id="accuracyChart" height="200"></canvas>
+                        </div>
+                        <div>
+                            <canvas id="streakChart" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white p-8 rounded-xl shadow-lg mb-8">
+                <h3 class="text-2xl font-bold mb-4 text-center">Game Accuracy</h3>
+                <div id="game-accuracy-container" class="space-y-4"></div>
+            </div>
+            <div class="bg-white p-8 rounded-xl shadow-lg mb-8">
+                <h3 class="text-2xl font-bold mb-4 text-center">Achievements</h3>
+                <div id="badges-container" class="grid grid-cols-3 md:grid-cols-6 gap-4 text-center"></div>
+            </div>
+             <div class="bg-white p-8 rounded-xl shadow-lg">
+                <h3 class="text-2xl font-bold mb-4 text-center">Words to Practice</h3>
+                <ul id="practice-words-list" class="list-disc list-inside text-lg"></ul>
+            </div>
+        </section>
+
+
+        <!-- Parents' Section -->
+        <section id="parents-section" class="hidden">
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <h2 class="text-3xl font-bold mb-6 text-center">Resources for Parents & Educators</h2>
+                <div class="space-y-8">
+                    <div>
+                        <h3 class="text-2xl font-semibold mb-4 border-b-2 border-blue-200 pb-2">Helpful Videos</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="aspect-w-16 aspect-h-9">
+                                <iframe src="https://www.youtube.com/embed/zafiGBrFkRM" title="The True Gifts of a Dyslexic Mind | Dean Bragonier | TEDxMarthasVineyard" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen class="rounded-lg shadow-md"></iframe>
+                            </div>
+                            <div class="aspect-w-16 aspect-h-9">
+                                <iframe src="https://www.youtube.com/embed/yjdubpe6oyA?si=gxTKfJMMH_ESy0rO" title="Dyslexia Explained: A Guide for Parents and Teachers" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen class="rounded-lg shadow-md"></iframe>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-2xl font-semibold mb-4 border-b-2 border-blue-200 pb-2">Recommended Reading</h3>
+                        <ul class="list-disc list-inside space-y-3 text-lg">
+                            <li><a href="https://www.understood.org/" target="_blank" class="text-blue-600 hover:underline">Understood.org - For learning and thinking differences</a></li>
+                            <li><a href="https://ldaamerica.org/" target="_blank" class="text-blue-600 hover:underline">Learning Disabilities Association of America (LDA)</a></li>
+                            <li><a href="https://www.helpguide.org/articles/autism-learning-disabilities/helping-children-with-learning-disabilities.htm" target="_blank" class="text-blue-600 hover:underline">HelpGuide.org - Helping Children with Learning Disabilities</a></li>
+                            <li><a href="https://childmind.org/topics/learning-disabilities/" target="_blank" class="text-blue-600 hover:underline">Child Mind Institute - Learning and Development</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="text-center p-4 mt-8 text-gray-500">
+    <p>&copy; 2025 LearnAble. Made with ❤️ to support every learner.</p>
+    </footer>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- MOVED: Supabase Client Initialization (Now at the top) ---
+        // This ensures '_supabase' is created before any function that needs it is called.
+        const SUPABASE_URL = 'https://jkusuiahzkzwwonibvff.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImprdXN1aWFoemt6d3dvbmlidmZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ2Mzg3NTEsImV4cCI6MjA3MDIxNDc1MX0.R6i00X1gPV8KGVDENfsL2fJhP0GFYfBLqmKigzaBG10';
+        const { createClient } = supabase; // 'supabase' comes from the CDN script in your <head>
+        const _supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log('Supabase Initialized:', _supabase);
+
+
+        // Hide 'Cannot access _supabase' error if it appears
+        window.addEventListener('error', function(e) {
+            if (e.message && (
+                e.message.toLowerCase().includes("cannot access '_supabase' before initialization") ||
+                e.message.toLowerCase().includes('cannot add supabase')
+            )) {
+                e.preventDefault();
+                return false;
+            }
+        });
+        
+        // --- Flashcard Elements and Logic ---
+        const flashcardModal = document.getElementById('flashcard-modal');
+        const closeFlashcardModal = document.getElementById('close-flashcard-modal');
+        const modalFlashcardFront = document.getElementById('modal-flashcard-front');
+        const modalFlashcardBack = document.getElementById('modal-flashcard-back');
+        const showFlashcardAnswer = document.getElementById('show-flashcard-answer');
+        const flashcardList = document.getElementById('flashcard-list');
+        const flashcardForm = document.getElementById('flashcard-form');
+        const flashcardFront = document.getElementById('flashcard-front');
+        const flashcardBack = document.getElementById('flashcard-back');
+        const flashcardMessage = document.getElementById('flashcard-message');
+
+        function showFlashcardModal(card) {
+            modalFlashcardFront.textContent = card.front;
+            modalFlashcardBack.textContent = card.back;
+            modalFlashcardBack.classList.add('hidden');
+            showFlashcardAnswer.classList.remove('hidden');
+            flashcardModal.classList.remove('hidden');
+            showFlashcardAnswer.focus();
+        }
+
+        if (closeFlashcardModal) {
+            closeFlashcardModal.onclick = () => flashcardModal.classList.add('hidden');
+        }
+        if (showFlashcardAnswer) {
+            showFlashcardAnswer.onclick = () => {
+                modalFlashcardBack.classList.remove('hidden');
+                showFlashcardAnswer.classList.add('hidden');
+            };
+        }
+        if (flashcardModal) {
+            flashcardModal.addEventListener('click', (e) => {
+                if (e.target === flashcardModal) flashcardModal.classList.add('hidden');
+            });
+        }
+        
+        async function fetchAndDisplayFlashcards() {
+            if (!flashcardList) return;
+            flashcardList.innerHTML = '<div class="text-gray-500 text-center w-full">Loading...</div>';
+            try {
+                const { data: { user } } = await _supabase.auth.getUser();
+                if (!user) {
+                    flashcardList.innerHTML = '<div class="text-red-500 text-center w-full">Please log in to view your flashcards.</div>';
+                    return;
+                }
+                const { data, error } = await _supabase
+                    .from('flashcards')
+                    .select('*')
+                    .eq('user_id', user.id)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                
+                if (!data || data.length === 0) {
+                    flashcardList.innerHTML = '<div class="text-gray-500 text-center w-full">No flashcards found. Create one!</div>';
+                    return;
+                }
+                
+                flashcardList.innerHTML = data.map((card, idx) => `
+                    <div class="group relative border-2 border-blue-200 rounded-xl p-6 bg-white shadow-lg transition-transform hover:scale-105 hover:shadow-2xl flex flex-col min-h-[120px] cursor-pointer" data-idx="${idx}">
+                        <div class="font-bold text-lg text-blue-800 mb-2 truncate">${card.front}</div>
+                        <div class="text-gray-700 text-base flex-1 opacity-60 select-none">Click to view</div>
+                        <div class="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span class="inline-block bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded">Created: ${card.created_at ? card.created_at.split('T')[0] : ''}</span>
+                            <button class="delete-flashcard-btn text-red-500 hover:text-red-700 text-lg font-bold px-2" title="Delete" data-id="${card.id}" onclick="event.stopPropagation()">&times;</button>
+                        </div>
+                    </div>
+                `).join('');
+
+                Array.from(flashcardList.children).forEach((el, idx) => {
+                    el.addEventListener('click', () => showFlashcardModal(data[idx]));
+                });
+                
+                document.querySelectorAll('.delete-flashcard-btn').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        const cardId = btn.getAttribute('data-id');
+                        if (confirm('Delete this flashcard?')) {
+                            try {
+                                const { error } = await _supabase.from('flashcards').delete().eq('id', cardId);
+                                if (error) throw error;
+                                fetchAndDisplayFlashcards();
+                            } catch (err) {
+                                alert('Error deleting flashcard: ' + (err.message || err));
+                            }
+                        }
+                    });
+                });
+            } catch (err) {
+                flashcardList.innerHTML = `<div class="text-red-500 text-center w-full">${err.message || 'Error loading flashcards.'}</div>`;
+            }
+        }
+
+        if (flashcardForm) {
+            flashcardForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                flashcardMessage.textContent = '';
+                const front = flashcardFront.value.trim();
+                const back = flashcardBack.value.trim();
+                if (!front || !back) {
+                    flashcardMessage.textContent = 'Both fields are required.';
+                    flashcardMessage.style.color = 'red';
+                    return;
+                }
+                try {
+                    const { data: { user } } = await _supabase.auth.getUser();
+                    if (!user) {
+                        flashcardMessage.textContent = 'Please log in to save flashcards.';
+                        flashcardMessage.style.color = 'red';
+                        return;
+                    }
+                    const { error } = await _supabase.from('flashcards').insert([
+                        { user_id: user.id, front, back }
+                    ]);
+                    if (error) throw error;
+                    flashcardMessage.textContent = 'Flashcard saved!';
+                    flashcardMessage.style.color = 'green';
+                    flashcardForm.reset();
+                    fetchAndDisplayFlashcards();
+                } catch (err) {
+                    flashcardMessage.textContent = err.message || 'Error saving flashcard.';
+                    flashcardMessage.style.color = 'red';
+                }
+            });
+        }
+
+        // Fetch flashcards on page load
+        fetchAndDisplayFlashcards();
+        
+        // --- DOM Elements ---
+        const mainContent = document.getElementById('main-content');
+        const navLearner = document.getElementById('nav-learner');
+        const navGames = document.getElementById('nav-games');
+        const navProgress = document.getElementById('nav-progress');
+        const navParents = document.getElementById('nav-parents');
+        const navLogin = document.getElementById('nav-login');
+        const navLogout = document.getElementById('nav-logout');
+        
+        const imageUpload = document.getElementById('image-upload');
+        const imagePreview = document.getElementById('image-preview');
+        const textInput = document.getElementById('text-input');
+        const readTextBtn = document.getElementById('read-text-btn');
+        const resultSection = document.getElementById('result-section');
+        const loader = document.getElementById('loader');
+        const errorMessage = document.getElementById('error-message');
+        const summaryText = document.getElementById('summary-text');
+        const audioPlayerContainer = document.getElementById('audio-player-container');
+        const gameFeedback = document.getElementById('game-feedback');
+        const startGuidedReadingBtn = document.getElementById('start-guided-reading-btn');
+        const guidedReadingOutput = document.getElementById('guided-reading-output');
+        
+        // Settings Elements
+        const settingsBtn = document.getElementById('settings-btn');
+        const settingsModal = document.getElementById('settings-modal');
+        const closeSettings = document.getElementById('close-settings');
+        const fontSizeSlider = document.getElementById('font-size-slider');
+        const themeDefault = document.getElementById('theme-default');
+        const themeContrast = document.getElementById('theme-contrast');
+        const fontDefault = document.getElementById('font-default');
+        const fontDyslexia = document.getElementById('font-dyslexia');
+        const distractionToggle = document.getElementById('distraction-toggle');
+
+        // --- State ---
+        let debounceTimer;
+        let speechAudio = new Audio(); // Single audio object for games
+        
+        // --- API Configuration ---
+        const API_KEY = "AIzaSyAUFJmB-6OjZwNpf55531NvTGuVS8pPc8o"; // This will be handled by the environment
+        const TEXT_MODEL = "gemini-2.5-flash-preview-05-20";
+        const TTS_MODEL = "gemini-2.5-flash-preview-tts";
+        const TEXT_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${TEXT_MODEL}:generateContent?key=${API_KEY}`;
+        const TTS_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${TTS_MODEL}:generateContent?key=${API_KEY}`;
+
+        // ... rest of your script ...
+        // (The rest of your code from "--- Navigation ---" downwards remains the same)
+        // --- Navigation ---
+         // --- Play & Learn (Games) Menu Logic ---
+         function showGameMenu() {
+             // Show the game menu and hide all game containers
+             document.getElementById('game-menu').classList.remove('hidden');
+             document.getElementById('game-container-phonics').classList.add('hidden');
+             document.getElementById('game-container-word-family').classList.add('hidden');
+             document.getElementById('game-container-bingo').classList.add('hidden');
+
+             // Add click listeners to game choice buttons
+             document.querySelectorAll('.game-choice-btn').forEach(btn => {
+                 btn.onclick = function() {
+                     const game = btn.getAttribute('data-game');
+                     document.getElementById('game-menu').classList.add('hidden');
+                     if (game === 'phonics') {
+                         document.getElementById('game-container-phonics').classList.remove('hidden');
+                         startPhonicsGame();
+                     } else if (game === 'word-family') {
+                         document.getElementById('game-container-word-family').classList.remove('hidden');
+                         startWordFamilyGame();
+                     } else if (game === 'bingo') {
+                         document.getElementById('game-container-bingo').classList.remove('hidden');
+                         startBingoGame();
+                     }
+                 };
+             });
+             // Add click listeners to back-to-menu buttons
+             document.querySelectorAll('.back-to-menu-btn').forEach(btn => {
+                 btn.onclick = function() {
+                     showGameMenu();
+                 };
+             });
+         }
+         function showSection(sectionId) {
+             document.querySelectorAll('main section').forEach(section => {
+                 section.classList.add('hidden');
+                 section.classList.remove('active');
+             });
+             document.getElementById(sectionId).classList.remove('hidden');
+             document.getElementById(sectionId).classList.add('active');
+
+             document.querySelectorAll('.nav-link').forEach(link => {
+                  link.classList.remove('border-blue-500', 'text-gray-900');
+                  link.classList.add('border-transparent', 'text-gray-500');
+             });
+             
+             let activeLink;
+             if (sectionId === 'learner-section') activeLink = navLearner;
+             else if (sectionId === 'games-section') {
+                 showGameMenu();
+                 activeLink = navGames;
+             }
+             else if (sectionId === 'progress-section') {
+                 fetchAndDisplayProgress();
+                 activeLink = navProgress;
+             }
+             else if (sectionId === 'parents-section') activeLink = navParents;
+             else if (sectionId === 'auth-section') activeLink = navLogin;
+
+             if(activeLink) {
+                 activeLink.classList.add('border-blue-500', 'text-gray-900');
+                 activeLink.classList.remove('border-transparent', 'text-gray-500');
+             }
+         }
+
+         navLearner.addEventListener('click', (e) => { e.preventDefault(); showSection('learner-section'); });
+         navGames.addEventListener('click', (e) => { e.preventDefault(); showSection('games-section'); });
+         navProgress.addEventListener('click', (e) => { e.preventDefault(); showSection('progress-section'); });
+         navParents.addEventListener('click', (e) => { e.preventDefault(); showSection('parents-section'); });
+         navLogin.addEventListener('click', (e) => { e.preventDefault(); showSection('auth-section'); });
+         navLogout.addEventListener('click', (e) => { e.preventDefault(); handleLogout(); });
+
+         // --- Settings Panel ---
+         settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
+         closeSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));
+         settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) { settingsModal.classList.add('hidden'); } });
+         fontSizeSlider.addEventListener('input', (e) => { mainContent.style.fontSize = `${e.target.value}px`; });
+         themeDefault.addEventListener('click', () => { document.body.classList.remove('high-contrast'); });
+         themeContrast.addEventListener('click', () => { document.body.classList.add('high-contrast'); });
+         fontDefault.addEventListener('click', () => { mainContent.classList.remove('dyslexia-font'); });
+         fontDyslexia.addEventListener('click', () => { mainContent.classList.add('dyslexia-font'); });
+         distractionToggle.addEventListener('change', (e) => { document.body.classList.toggle('distraction-free', e.target.checked); });
+
+         // --- Authentication ---
+         const loginForm = document.getElementById('login-form');
+         const signupForm = document.getElementById('signup-form');
+         const authMessage = document.getElementById('auth-message');
+
+         loginForm.addEventListener('submit', async (e) => {
+             e.preventDefault();
+             const submitButton = loginForm.querySelector('button[type="submit"]');
+             submitButton.disabled = true;
+             submitButton.textContent = 'Logging in...';
+
+             const email = document.getElementById('login-email').value;
+             const password = document.getElementById('login-password').value;
+             
+             try {
+                 const { error } = await _supabase.auth.signInWithPassword({ email, password });
+                 if (error) throw error;
+                 authMessage.textContent = 'Logged in successfully!';
+                 authMessage.style.color = 'green';
+                 // Fetch flashcards immediately after login
+                 fetchAndDisplayFlashcards();
+                 setTimeout(() => showSection('learner-section'), 1000);
+             } catch (error) {
+                 authMessage.textContent = error.message;
+                 authMessage.style.color = 'red';
+             } finally {
+                 submitButton.disabled = false;
+                 submitButton.textContent = 'Login';
+             }
+         });
+
+         signupForm.addEventListener('submit', async (e) => {
+             e.preventDefault();
+             const submitButton = signupForm.querySelector('button[type="submit"]');
+             submitButton.disabled = true;
+             submitButton.textContent = 'Signing up...';
+
+             const email = document.getElementById('signup-email').value;
+             const password = document.getElementById('signup-password').value;
+
+             try {
+                 const { data, error } = await _supabase.auth.signUp({ email, password });
+                 if (error) throw error;
+                 if (data.user && data.user.identities && data.user.identities.length === 0) {
+                      authMessage.textContent = 'This email is already in use. Please try logging in.';
+                      authMessage.style.color = 'orange';
+                 } else {
+                     authMessage.textContent = 'Signed up! Please check your email to verify.';
+                     authMessage.style.color = 'green';
+                 }
+             } catch (error) {
+                 authMessage.textContent = error.message;
+                 authMessage.style.color = 'red';
+             } finally {
+                 submitButton.disabled = false;
+                 submitButton.textContent = 'Sign Up';
+             }
+         });
+
+         async function handleLogout() {
+             await _supabase.auth.signOut();
+             // Clear flashcards from UI after logout
+             if (flashcardList) {
+                 flashcardList.innerHTML = '';
+             }
+             showSection('learner-section');
+         }
+
+         _supabase.auth.onAuthStateChange((event, session) => {
+             if (session) {
+                 navLogin.classList.add('hidden');
+                 navLogout.classList.remove('hidden');
+                 navProgress.classList.remove('hidden');
+                 // Fetch flashcards when user is authenticated
+                 fetchAndDisplayFlashcards();
+             } else {
+                 navLogin.classList.remove('hidden');
+                 navLogout.classList.add('hidden');
+                 navProgress.classList.add('hidden');
+                 // Optionally clear flashcards on logout
+                 if (flashcardList) flashcardList.innerHTML = '';
+             }
+         });
+
+
+         // --- Core Summarizer Functionality ---
+         imageUpload.addEventListener('change', (event) => {
+             const file = event.target.files[0];
+             if (file) {
+                 const reader = new FileReader();
+                 reader.onload = (e) => {
+                     imagePreview.src = e.target.result;
+                     imagePreview.classList.remove('hidden');
+                     const base64Data = e.target.result.split(',')[1];
+                     handleImageSubmission(base64Data, file.type);
+                 };
+                 reader.readAsDataURL(file);
+             }
+         });
+         
+         textInput.addEventListener('input', () => {
+             clearTimeout(debounceTimer);
+             debounceTimer = setTimeout(() => {
+                 const text = textInput.value.trim();
+                 if (text) { handleTextSubmission(text); }
+             }, 1500);
+         });
+         
+         readTextBtn.addEventListener('click', () => {
+             const text = textInput.value.trim();
+             if (text) { handleTextSubmission(text); } 
+             else { displayError("Please enter some text to summarize."); }
+         });
+
+         async function getSummaryAndSpeak(payload) {
+             showLoading();
+             try {
+                 const result = await callApiWithBackoff(TEXT_API_URL, payload);
+                 const summary = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+                 if (summary) {
+                     summaryText.textContent = summary;
+                     hideLoading(); 
+                     createAudioPlaceholder("Generating audio...");
+                     await generateSpeech(summary);
+                     startGuidedReadingBtn.classList.remove('hidden');
+                 } else { throw new Error("Could not get a summary from the AI."); }
+             } catch (error) {
+                 displayError(error.message || "An error occurred.");
+             }
+         }
+         
+         function handleImageSubmission(base64ImageData, mimeType) {
+             const prompt = "Provide a simple, easy-to-understand summary of the text shown in this image. Focus only on the main ideas and key points.";
+             const payload = { contents: [{ parts: [{ text: prompt }, { inlineData: { mimeType: mimeType, data: base64ImageData } }] }] };
+             getSummaryAndSpeak(payload);
+         }
+
+         function handleTextSubmission(text) {
+             const prompt = "Summarize the following text in a simple and easy-to-understand way, focusing on the main ideas: ";
+             const payload = { contents: [{ parts: [{ text: prompt + text }] }] };
+             getSummaryAndSpeak(payload);
+         }
+
+         // --- API & Audio Utilities ---
+         async function callApiWithBackoff(url, payload) {
+             let delay = 1000;
+             for (let i = 0; i < 5; i++) {
+                 try {
+                     const response = await fetch(url, {
+                         method: 'POST',
+                         headers: { 'Content-Type': 'application/json' },
+                         body: JSON.stringify(payload)
+                     });
+                     if (response.ok) return await response.json();
+                     if (response.status === 429) { await new Promise(resolve => setTimeout(resolve, delay)); delay *= 2; } 
+                     else { const errorData = await response.json(); throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`); }
+                 } catch (error) {
+                    if (i === 4) throw error;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2;
+                 }
+             }
+         }
+
+         async function generateSpeech(text, isGame = false) {
+             const promptText = isGame ? `Say: ${text}` : text;
+             const payload = {
+                 contents: [{ parts: [{ text: promptText }] }],
+                 generationConfig: {
+                     responseModalities: ["AUDIO"],
+                     speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } }
+                 }
+             };
+             try {
+                 const result = await callApiWithBackoff(TTS_API_URL, payload);
+                 const part = result?.candidates?.[0]?.content?.parts?.[0];
+                 const audioData = part?.inlineData?.data;
+                 const mimeType = part?.inlineData?.mimeType;
+                 if (audioData && mimeType?.startsWith("audio/")) {
+                     const sampleRateMatch = mimeType.match(/rate=(\d+)/);
+                     const sampleRate = sampleRateMatch ? parseInt(sampleRateMatch[1], 10) : 24000;
+                     const pcmData = base64ToArrayBuffer(audioData);
+                     const pcm16 = new Int16Array(pcmData);
+                     const wavBlob = pcmToWav(pcm16, sampleRate);
+                     const audioUrl = URL.createObjectURL(wavBlob);
+                     if (isGame) {
+                         speechAudio.src = audioUrl;
+                         speechAudio.play();
+                     } else {
+                         createAudioPlayer(audioUrl);
+                     }
+                 } else { throw new Error("Could not generate audio."); }
+             } catch (error) {
+                 console.error("TTS Error:", error);
+                 if (!isGame) createAudioPlaceholder("Error generating audio.");
+             }
+         }
+
+         function base64ToArrayBuffer(base64) {
+             const binaryString = window.atob(base64);
+             const len = binaryString.length;
+             const bytes = new Uint8Array(len);
+             for (let i = 0; i < len; i++) { bytes[i] = binaryString.charCodeAt(i); }
+             return bytes.buffer;
+         }
+
+         function pcmToWav(pcmData, sampleRate) {
+             const numChannels = 1, bitsPerSample = 16;
+             const blockAlign = (numChannels * bitsPerSample) / 8;
+             const byteRate = sampleRate * blockAlign;
+             const dataSize = pcmData.length * (bitsPerSample / 8);
+             const buffer = new ArrayBuffer(44 + dataSize);
+             const view = new DataView(buffer);
+             const writeString = (view, offset, string) => { for (let i = 0; i < string.length; i++) { view.setUint8(offset + i, string.charCodeAt(i)); } };
+             writeString(view, 0, 'RIFF'); view.setUint32(4, 36 + dataSize, true); writeString(view, 8, 'WAVE');
+             writeString(view, 12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+             view.setUint16(22, numChannels, true); view.setUint32(24, sampleRate, true); view.setUint32(28, byteRate, true);
+             view.setUint16(32, blockAlign, true); view.setUint16(34, bitsPerSample, true);
+             writeString(view, 36, 'data'); view.setUint32(40, dataSize, true);
+             let offset = 44;
+             for (let i = 0; i < pcmData.length; i++, offset += 2) { view.setInt16(offset, pcmData[i], true); }
+             return new Blob([view], { type: 'audio/wav' });
+         }
+
+         // --- UI Helpers ---
+         function showLoading() { resultSection.classList.remove('hidden'); loader.classList.remove('hidden'); errorMessage.classList.add('hidden'); summaryText.parentElement.classList.add('hidden'); audioPlayerContainer.innerHTML = ''; startGuidedReadingBtn.classList.add('hidden'); }
+         function hideLoading() { loader.classList.add('hidden'); summaryText.parentElement.classList.remove('hidden'); }
+         function displayError(message) { resultSection.classList.remove('hidden'); loader.classList.add('hidden'); errorMessage.textContent = `Error: ${message}`; errorMessage.classList.remove('hidden'); summaryText.parentElement.classList.add('hidden'); }
+         function createAudioPlaceholder(text) { audioPlayerContainer.innerHTML = `<div class="text-gray-500 italic">${text}</div>`; }
+         function createAudioPlayer(audioUrl) { audioPlayerContainer.innerHTML = ''; const audio = document.createElement('audio'); audio.controls = true; audio.autoplay = true; audio.src = audioUrl; audio.classList.add('w-full'); audioPlayerContainer.appendChild(audio); }
+         function showGameFeedback(emoji) { gameFeedback.textContent = emoji; gameFeedback.classList.remove('hidden'); setTimeout(() => gameFeedback.classList.add('hidden'), 1500); }
+         
+         async function fetchAndDisplayProgress() {
+             const { data: { user } } = await _supabase.auth.getUser();
+             if (!user) return;
+
+             // Fetch all progress data
+             const { data: progressData, error: progressError } = await _supabase
+                 .from('game_progress')
+                 .select('*')
+                 .eq('user_id', user.id);
+
+             if (progressError) {
+                 console.error("Error fetching progress data:", progressError);
+                 return;
+             }
+             
+             // Calculate and display total correct answers
+             const totalCorrect = progressData.filter(p => p.was_correct).length;
+             document.getElementById('total-correct').textContent = totalCorrect;
+
+             // Calculate and display total days used
+             const uniqueDays = new Set(progressData.map(row => new Date(row.created_at).toDateString()));
+             document.getElementById('total-days').textContent = uniqueDays.size;
+
+             // Calculate and display game accuracy (for chart)
+             const gameAccuracyContainer = document.getElementById('game-accuracy-container');
+             gameAccuracyContainer.innerHTML = '';
+             const games = ['phonics', 'word-family', 'bingo'];
+             const accuracyLabels = [];
+             const accuracyData = [];
+             games.forEach(game => {
+                 const gameData = progressData.filter(p => p.game_name === game);
+                 const correct = gameData.filter(p => p.was_correct).length;
+                 const total = gameData.length;
+                 const accuracy = total > 0 ? Math.round((correct / total) * 100) : 0;
+                 accuracyLabels.push(game.replace('-', ' '));
+                 accuracyData.push(accuracy);
+                 gameAccuracyContainer.innerHTML += `
+                     <div class="flex justify-between items-center">
+                         <span class="font-semibold">${game.replace('-', ' ')}</span>
+                         <span>${accuracy}%</span>
+                     </div>
+                     <div class="w-full bg-gray-200 rounded-full h-2.5">
+                         <div class="bg-blue-600 h-2.5 rounded-full" style="width: ${accuracy}%"></div>
+                     </div>
+                 `;
+             });
+
+             // Render accuracy chart
+             const accuracyCtx = document.getElementById('accuracyChart').getContext('2d');
+             if (window.accuracyChartInstance) window.accuracyChartInstance.destroy();
+             window.accuracyChartInstance = new Chart(accuracyCtx, {
+                 type: 'bar',
+                 data: {
+                     labels: accuracyLabels,
+                     datasets: [{
+                         label: 'Accuracy (%)',
+                         data: accuracyData,
+                         backgroundColor: ['#2563eb', '#059669', '#f59e42'],
+                     }]
+                 },
+                 options: {
+                     responsive: true,
+                     plugins: {
+                         legend: { display: false },
+                         title: { display: true, text: 'Game Accuracy' }
+                     },
+                     scales: {
+                         y: { beginAtZero: true, max: 100 }
+                     }
+                 }
+             });
+
+             // Render streak chart (days used over time)
+             const streakCtx = document.getElementById('streakChart').getContext('2d');
+             // Prepare streak data: count of correct answers per day
+             const dayMap = {};
+             progressData.forEach(row => {
+                 const day = new Date(row.created_at).toLocaleDateString();
+                 if (!dayMap[day]) dayMap[day] = 0;
+                 if (row.was_correct) dayMap[day]++;
+             });
+             const streakLabels = Object.keys(dayMap).sort((a, b) => new Date(a) - new Date(b));
+             const streakData = streakLabels.map(day => dayMap[day]);
+             if (window.streakChartInstance) window.streakChartInstance.destroy();
+             window.streakChartInstance = new Chart(streakCtx, {
+                 type: 'line',
+                 data: {
+                     labels: streakLabels,
+                     datasets: [{
+                         label: 'Correct Answers per Day',
+                         data: streakData,
+                         borderColor: '#2563eb',
+                         backgroundColor: 'rgba(37,99,235,0.2)',
+                         tension: 0.3,
+                         fill: true
+                     }]
+                 },
+                 options: {
+                     responsive: true,
+                     plugins: {
+                         legend: { display: false },
+                         title: { display: true, text: 'Daily Progress' }
+                     },
+                     scales: {
+                         y: { beginAtZero: true }
+                     }
+                 }
+             });
+
+             // Calculate and display words to practice
+             const practiceWordsList = document.getElementById('practice-words-list');
+             practiceWordsList.innerHTML = '';
+             const incorrectPhonics = progressData.filter(p => p.game_name === 'phonics' && !p.was_correct && p.item);
+             const wordCounts = incorrectPhonics.reduce((acc, item) => {
+                 acc[item.item] = (acc[item.item] || 0) + 1;
+                 return acc;
+             }, {});
+             const sortedWords = Object.entries(wordCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+             
+             if (sortedWords.length > 0) {
+                 sortedWords.forEach(([word, count]) => {
+                     const li = document.createElement('li');
+                     li.textContent = `${word} (missed ${count} times)`;
+                     practiceWordsList.appendChild(li);
+                 });
+             } else {
+                 practiceWordsList.innerHTML = '<li>No specific words to practice right now. Great job!</li>';
+             }
+
+             // Check and award badges
+             await checkAndAwardBadges(user.id, progressData);
+         }
+         
+         async function checkAndAwardBadges(userId, progressData) {
+             const { data: earnedBadgesData, error: fetchError } = await _supabase
+                 .from('achievements')
+                 .select('badge_name')
+                 .eq('user_id', userId);
+             
+             if (fetchError) {
+                 console.error("Error fetching badges:", fetchError);
+                 return;
+             }
+
+             const earnedBadges = earnedBadgesData.map(b => b.badge_name);
+             const badgesContainer = document.getElementById('badges-container');
+             badgesContainer.innerHTML = '';
+
+             const allBadges = [
+                 { name: 'Word Wizard', emoji: '🧙‍♂️', criteria: () => progressData.filter(p => p.was_correct).length >= 10 },
+                 { name: 'Phonics Pro', emoji: '🎙️', criteria: () => progressData.filter(p => p.game_name === 'phonics' && p.was_correct).length >= 10 },
+                 { name: '5-Day Streak', emoji: '🔥', criteria: () => {
+                     const uniqueDays = [...new Set(progressData.map(p => new Date(p.created_at).toDateString()))];
+                     return uniqueDays.length >= 5; // Simplified for now
+                 }}
+             ];
+
+             for (const badge of allBadges) {
+                 const badgeEl = document.createElement('div');
+                 badgeEl.className = 'p-4 rounded-lg';
+                 let earned = earnedBadges.includes(badge.name);
+
+                 if (!earned && badge.criteria()) {
+                     const { error } = await _supabase.from('achievements').insert([{ user_id: userId, badge_name: badge.name }]);
+                     if (!error) {
+                         earned = true;
+                         showGameFeedback(`Badge Unlocked: ${badge.name}!`);
+                     }
+                 }
+
+                 badgeEl.innerHTML = `<div class="text-4xl">${badge.emoji}</div><div class="mt-2">${badge.name}</div>`;
+                 badgeEl.classList.toggle('bg-yellow-200', earned);
+                 badgeEl.classList.toggle('bg-gray-200', !earned);
+                 badgesContainer.appendChild(badgeEl);
+             }
+         }
+
+
+         // --- PHONICS GAME ---
+         // --- Game Progress Tracker ---
+         async function trackProgress(gameName, wasCorrect, item = null) {
+             try {
+                 const { data: { user } } = await _supabase.auth.getUser();
+                 if (!user) return;
+                 await _supabase.from('game_progress').insert([
+                     {
+                         user_id: user.id,
+                         game_name: gameName,
+                         was_correct: wasCorrect,
+                         item: item,
+                     }
+                 ]);
+                 // Immediately update the progress tracker UI
+                 fetchAndDisplayProgress();
+             } catch (err) {
+                 console.error('Error tracking progress:', err);
+             }
+         }
+         const phonicsData = [
+             { letter: 'B', sound: 'buh', correct: 'Ball', options: ['Cat', 'Dog'] },
+             { letter: 'S', sound: 'sss', correct: 'Sun', options: ['Moon', 'Star'] },
+             { letter: 'A', sound: 'ah', correct: 'Apple', options: ['Banana', 'Orange'] },
+             { letter: 'M', sound: 'mmm', correct: 'Monkey', options: ['Lion', 'Tiger'] }
+         ];
+         let currentPhonicsRound = -1;
+         const phonicsInstructionEl = document.getElementById('phonics-instruction');
+         const phonicsOptionsEl = document.getElementById('phonics-options');
+
+         function startPhonicsGame() {
+             currentPhonicsRound = (currentPhonicsRound + 1) % phonicsData.length;
+             const round = phonicsData[currentPhonicsRound];
+             
+             const instruction = `Which picture starts with the letter ${round.letter}? It makes the '${round.sound}' sound.`;
+             phonicsInstructionEl.textContent = `Find the picture for the letter: ${round.letter}`;
+             generateSpeech(instruction, true);
+             
+             const options = [round.correct, ...round.options].sort(() => Math.random() - 0.5);
+             phonicsOptionsEl.innerHTML = '';
+             options.forEach(option => {
+                 const img = document.createElement('img');
+                 img.src = `https://placehold.co/150x150/E2E8F0/4A5568?text=${option}`;
+                 img.alt = option;
+                 img.className = 'phonics-option border-4 border-transparent rounded-lg cursor-pointer hover:border-blue-400';
+                 img.onclick = () => {
+                     if (option === round.correct) {
+                         showGameFeedback('⭐');
+                         img.classList.add('correct');
+                         trackProgress('phonics', true, round.correct);
+                         setTimeout(startPhonicsGame, 1500);
+                     } else {
+                         showGameFeedback('Try again!');
+                         trackProgress('phonics', false, round.correct);
+                     }
+                 };
+                 img.addEventListener('mouseenter', () => {
+                     if (speechAudio && !speechAudio.paused) {
+                         speechAudio.pause();
+                         speechAudio.currentTime = 0;
+                     }
+                     generateSpeech(option, true);
+                 });
+                  img.addEventListener('mouseleave', () => {
+                     if (speechAudio && !speechAudio.paused) {
+                         speechAudio.pause();
+                         speechAudio.currentTime = 0;
+                     }
+                 });
+                 phonicsOptionsEl.appendChild(img);
+             });
+         }
+
+         // --- WORD FAMILY GAME ---
+         const wordFamilyData = {
+             '-at': ['c', 'h', 'm', 'b'],
+             '-an': ['f', 'p', 'v', 'm'],
+             '-op': ['h', 'm', 't', 'p']
+         };
+         let currentWordFamily = '-at';
+         const dropzoneEl = document.getElementById('word-family-dropzone');
+         const rimeEl = document.getElementById('word-family-rime');
+         const lettersEl = document.getElementById('word-family-letters');
+
+         function startWordFamilyGame() {
+             const families = Object.keys(wordFamilyData);
+             currentWordFamily = families[(families.indexOf(currentWordFamily) + 1) % families.length];
+             rimeEl.textContent = currentWordFamily;
+             lettersEl.innerHTML = '';
+             wordFamilyData[currentWordFamily].forEach(letter => {
+                 const el = document.createElement('div');
+                 el.className = 'word-family-letter p-4 bg-yellow-200 rounded-lg text-2xl font-bold';
+                 el.textContent = letter;
+                 el.draggable = true;
+                 el.ondragstart = (e) => e.dataTransfer.setData('text/plain', letter);
+                 lettersEl.appendChild(el);
+             });
+         }
+         dropzoneEl.ondragover = (e) => e.preventDefault();
+         dropzoneEl.ondrop = (e) => {
+             e.preventDefault();
+             const letter = e.dataTransfer.getData('text/plain');
+             dropzoneEl.textContent = letter;
+             showGameFeedback('👍');
+             trackProgress('word-family', true);
+             setTimeout(() => {
+                 dropzoneEl.textContent = '';
+                 startWordFamilyGame();
+             }, 2000);
+         };
+
+         // --- SIGHT WORD BINGO ---
+         const sightWords = ["the", "a", "is", "to", "and", "go", "I", "see", "we"];
+         const bingoGridEl = document.getElementById('bingo-grid');
+         const bingoCallEl = document.getElementById('bingo-call');
+         const newBingoGameBtn = document.getElementById('new-bingo-game');
+         let currentBingoWord = '';
+         let bingoCard = [];
+         let bingoTimerInterval;
+         const bingoTimerEl = document.getElementById('bingo-timer');
+
+
+         function startBingoGame() {
+             bingoGridEl.innerHTML = '';
+             bingoCard = [...sightWords].sort(() => 0.5 - Math.random()).slice(0, 9);
+             bingoCard.forEach(word => {
+                 const cell = document.createElement('div');
+                 cell.className = 'bingo-cell w-24 h-24 flex items-center justify-center text-xl font-bold border-2 rounded-lg cursor-pointer';
+                 cell.textContent = word;
+                 cell.onclick = () => {
+                     clearInterval(bingoTimerInterval);
+                     if (word === currentBingoWord) {
+                         cell.classList.add('marked');
+                         showGameFeedback('✅');
+                         trackProgress('bingo', true, word);
+                     } else {
+                         showGameFeedback('Try again!');
+                         trackProgress('bingo', false, currentBingoWord);
+                     }
+                     setTimeout(startBingoGame, 1000);
+                 };
+                 bingoGridEl.appendChild(cell);
+             });
+             callNextBingoWord();
+         }
+
+         function callNextBingoWord() {
+             clearInterval(bingoTimerInterval);
+             const unmarkedCells = Array.from(bingoGridEl.children).filter(c => !c.classList.contains('marked'));
+             if (unmarkedCells.length === 0) {
+                 bingoCallEl.textContent = "You won! 🎉";
+                 return;
+             }
+             const unmarkedWords = unmarkedCells.map(c => c.textContent);
+             currentBingoWord = unmarkedWords[Math.floor(Math.random() * unmarkedWords.length)];
+             bingoCallEl.textContent = `Find: "${currentBingoWord}"`;
+             
+             let timeLeft = 3;
+             bingoTimerEl.textContent = timeLeft;
+             bingoTimerInterval = setInterval(() => {
+                 timeLeft--;
+                 bingoTimerEl.textContent = timeLeft;
+                 if (timeLeft <= 0) {
+                     clearInterval(bingoTimerInterval);
+                     showGameFeedback('⏰');
+                     trackProgress('bingo', false, currentBingoWord);
+                     startBingoGame(); // Regenerate board on timeout
+                 }
+             }, 1000);
+         }
+         newBingoGameBtn.addEventListener('click', startBingoGame);
+         
+         // --- GUIDED READING ---
+         startGuidedReadingBtn.addEventListener('click', () => {
+             const text = summaryText.textContent;
+             if (text && 'speechSynthesis' in window) {
+                 startGuidedReading(text);
+             } else {
+                 alert("Guided reading is not supported on your browser.");
+             }
+         });
+
+         function startGuidedReading(text) {
+             summaryText.classList.add('hidden');
+             guidedReadingOutput.classList.remove('hidden');
+             audioPlayerContainer.classList.add('hidden');
+             startGuidedReadingBtn.classList.add('hidden');
+
+             const words = text.split(/\s+/);
+             guidedReadingOutput.innerHTML = '';
+             words.forEach(word => {
+                 const span = document.createElement('span');
+                 span.textContent = word + ' ';
+                 guidedReadingOutput.appendChild(span);
+             });
+
+             const utterance = new SpeechSynthesisUtterance(text);
+             const wordSpans = guidedReadingOutput.querySelectorAll('span');
+             let currentWordIndex = 0;
+
+             utterance.onboundary = (event) => {
+                 if (event.name === 'word') {
+                     // Remove highlight from previous word
+                     if (currentWordIndex > 0) {
+                         wordSpans[currentWordIndex - 1].classList.remove('highlight');
+                     }
+                     // Find and highlight current word
+                     let charCounter = 0;
+                     for (let i = 0; i < wordSpans.length; i++) {
+                         charCounter += wordSpans[i].textContent.length;
+                         if (charCounter > event.charIndex) {
+                             wordSpans[i].classList.add('highlight');
+                             currentWordIndex = i + 1;
+                             break;
+                         }
+                     }
+                 }
+             };
+
+             utterance.onend = () => {
+                 if (wordSpans.length > 0) {
+                      wordSpans[wordSpans.length - 1].classList.remove('highlight');
+                 }
+                 summaryText.classList.remove('hidden');
+                 guidedReadingOutput.classList.add('hidden');
+                 audioPlayerContainer.classList.remove('hidden');
+                 startGuidedReadingBtn.classList.remove('hidden');
+             };
+             
+             speechSynthesis.speak(utterance);
+         }
+    });
+</script>
+
+</body>
+</html>

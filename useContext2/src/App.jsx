@@ -1,7 +1,8 @@
 import axios from 'axios'
 import { useEffect, useState } from 'react'
+import 'bootstrap/dist/css/bootstrap.min.css';
+import Spinner from 'react-bootstrap/Spinner'; 
 
-import './App.css'
 
 function App() {
   const [users, setUsers] = useState([]);
@@ -25,7 +26,9 @@ function App() {
     <div>
       <p>User List</p>
       {loading? (
-        <p>Loading...</p>
+        <Spinner animation="border" role="status">
+      <span className="visually-hidden">Loading...</span>
+    </Spinner>
       ) : (
         <ul>
           {users.map((user)=>(
